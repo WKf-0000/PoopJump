@@ -17,6 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <bits/stdc++.h>
+#include "poopchoosefile.hpp"
 #ifdef _WIN32
     #include <windows.h>
     #include <conio.h>
@@ -47,6 +48,7 @@ void forceEnglishInput()
 bool init() 
 {
     srand(time(0));
+    poop::init();
     forceEnglishInput();
     #ifdef _WIN32
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -85,21 +87,33 @@ void getMap(string file/*地图的文件名*/)
 void drawMap()
 {
     cout << "Gold coin count : " << mayi << "\n";
-    for(int i = 0; i < mp.size(); i++)
+    int max_height = min((int)mp.size(), 30); 
+    for(int i = 0; i < max_height; i++)
     {
+        int max_w = mp[i].size();
         for(int j = left_x; j <= right_x; j++)
         {
             if(i == player.y && j == player.x)
             {
                 cout << "\033[36mP\033[0m";
             }
-            else if(mp[i][j] == '$') cout << "\033[33m$\033[0m";
-            else
+            else if(j >= 0 && j < max_w && mp[i][j] == '$') 
+            {
+                cout << "\033[33m$\033[0m";
+            }
+            else if(j >= 0 && j < max_w) 
             {
                 cout << mp[i][j];
             }
+            else 
+            {
+                cout << " ";
+            }
         }
         cout << '\n';
+    }
+    for(int i = max_height; i < 20; i++) {
+        cout << string(right_x - left_x + 1, ' ') << "\n";
     }
 }
 bool canStandAt(int x, int y)
@@ -136,11 +150,12 @@ void beginGame(string mapPath)
             player.y++;
         }
         if(GetAsyncKeyState('Q') & 0x8000)
-        {
-            cout << "\033[?25h";
-            waitForAnyKey();
-            break;
-        }
+		{
+		    cout << "\033[?25h";
+		    cout << "\033[2J\033[H" << flush;
+		    waitForAnyKey();
+		    break;
+		}
         if (!isFly && (GetAsyncKeyState(VK_UP) & 0x8000))
         {
             bool onGround = player.y + 1 < static_cast<int>(mp.size()) && player.x >= 0 && player.x < static_cast<int>(mp[player.y + 1].size()) && mp[player.y + 1][player.x] == '#';
@@ -191,6 +206,17 @@ This program is distributed under the GPL-2.0-or-later license.
         waitForAnyKey();
         return 0;
     }
-    beginGame("maps/test.txt");
+	while(1)
+	{
+	    mp.clear();
+	    mayi = 0;
+	    player = {10, 0};
+	    isFly = false;
+	    left_x = 0;
+	    string s = poop::chooseFile(15);
+	    if(s.empty()) break;
+	    cout << "\033[2J\033[H" << flush;
+	    beginGame(s);
+	}
     return 0;
 }
