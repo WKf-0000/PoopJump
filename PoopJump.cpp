@@ -29,7 +29,7 @@ struct coords
 };
 void waitForAnyKey()
 {
-    cout << "\nPress any key to exit...";
+    cout << "\nPress any key to continue...";
     cout.flush();
     #ifdef _WIN32
         while (_kbhit()) _getch();
@@ -38,21 +38,16 @@ void waitForAnyKey()
         cin.get();
     #endif
 }
+void forceEnglishInput()
+{
+    keybd_event(VK_SHIFT, 0, 0, 0);
+    Sleep(50);
+    keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
+}
 bool init() 
 {
-    cout << R"(PoopJump
-Copyright (C) 2026 WKf-0000
-
-Disclaimer:
-This program is provided for learning and research purposes only.
-The author shall not be liable for any direct or indirect damages
-caused by the use of this program.
-
-This program is distributed under the GPL-2.0-or-later license.
-
-)";
-    waitForAnyKey();
     srand(time(0));
+    forceEnglishInput();
     #ifdef _WIN32
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (hOut == INVALID_HANDLE_VALUE) return false;
@@ -70,10 +65,11 @@ vector <string> mp;// 地图
 bool isFly = 0;// 飞起来!!
 int flyHigh = 0;// 飞起来的高度
 int flybeginY = 0;// 飞起来的起始高度
-coords player = {0 , 0};
+coords player = {10 , 0};
+int left_x = 0 , right_x = 0;
+int mayi = 0;
 void getMap(string file/*地图的文件名*/)
 {
-    file = "maps/" + file;
     ifstream in(file);
     if(!in.is_open())
     {
@@ -88,20 +84,22 @@ void getMap(string file/*地图的文件名*/)
 }
 void drawMap()
 {
+    cout << "Gold coin count : " << mayi << "\n";
     for(int i = 0; i < mp.size(); i++)
     {
-        for(int j = 0; j < mp[i].size(); j++)
+        for(int j = left_x; j <= right_x; j++)
         {
             if(i == player.y && j == player.x)
             {
                 cout << "\033[36mP\033[0m";
             }
+            else if(mp[i][j] == '$') cout << "\033[33m$\033[0m";
             else
             {
                 cout << mp[i][j];
             }
         }
-        cout << endl;
+        cout << '\n';
     }
 }
 bool canStandAt(int x, int y)
@@ -110,12 +108,18 @@ bool canStandAt(int x, int y)
     if(x < 0 || x >= mp[y].size()) return false;
     return mp[y][x] != '#';
 }
-int main()
+void beginGame(string mapPath)
 {
-    init();
-    getMap("test.txt");
+    cout << "\033[2J\033[H" << flush;
+    getMap(mapPath);
+    right_x = player.x + 20;
     while(1)
     {
+        if(mp[player.y][player.x] == '$')
+        {
+	    mayi ++;
+ 	    mp[player.y][player.x] = ' ';
+	}
         if(isFly)
         {
             if(player.y > flybeginY - flyHigh && canStandAt(player.x, player.y - 1))
@@ -147,18 +151,46 @@ int main()
                 flybeginY = player.y;
             }
         }
-        if((GetAsyncKeyState(VK_LEFT) & 0x8000) && canStandAt(player.x - 1 , player.y))
+        if((GetAsyncKeyState(VK_LEFT) & 0x8000) && canStandAt(player.x - 1 , player.y) && player.x - 1 >= left_x)
         {
             player.x --;
         }
         if((GetAsyncKeyState(VK_RIGHT) & 0x8000) && canStandAt(player.x + 1 , player.y))
         {
             player.x ++;
+            if(player.x > right_x - 5)
+            {
+            	if(right_x + 1 <= mp[0].size()) right_x ++ , left_x ++;
+            }
         }
         cout << "\033[?25l";
         cout << "\033[H";
         drawMap();
-        Sleep(20);
+        #ifdef _WIN32
+        	Sleep(30);
+        #endif
     }
+}
+int main()
+{
+    cout << R"(PoopJump
+Copyright (C) 2026 WKf-0000
+
+Disclaimer:
+This program is provided for learning and research purposes only.
+The author shall not be liable for any direct or indirect damages
+caused by the use of this program.
+
+This program is distributed under the GPL-2.0-or-later license.
+
+)";
+    waitForAnyKey();
+    if(!init())
+    {
+        cout << "Can not Using VT Output!!!\n";
+        waitForAnyKey();
+        return 0;
+    }
+    beginGame("maps/test.txt");
     return 0;
 }
